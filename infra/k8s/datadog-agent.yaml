@@ -14,7 +14,9 @@ spec:
   global:
     clusterName: mixapp-cluster
     site: datadoghq.com
-    env: staging
+    env:
+      - name: DD_ENV
+        value: staging
     credentials:
       apiSecret:
         secretName: datadog-secret
