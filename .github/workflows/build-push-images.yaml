@@ -1,13 +1,12 @@
-# Investor Agent・Load generator イメージをビルドして GHCR にプッシュ
+# 全 Agent のイメージをビルドして GHCR にプッシュ（Git push → ビルド → デプロイ用）
+# 新規 Agent 追加時は matrix.app に名前を追加すること（.cursor/rules/deployment.mdc 参照）
 name: Build and push images
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/investor-agent/**'
-      - 'apps/load-generator/**'
-      - 'apps/chat-ui/**'
+      - 'apps/**'
   workflow_dispatch:
 
 env:
@@ -19,6 +18,11 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [investor-agent, load-generator, chat-ui]
 
     steps:
       - name: Checkout
@@ -34,29 +38,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push investor-agent
+      - name: Build and push ${{ matrix.app }}
         uses: docker/build-push-action@v6
         with:
-          context: apps/investor-agent
+          context: apps/${{ matrix.app }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-investor-agent:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-investor-agent:${{ github.sha }}
-
-      - name: Build and push load-generator
-        uses: docker/build-push-action@v6
-        with:
-          context: apps/load-generator
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-load-generator:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-load-generator:${{ github.sha }}
-
-      - name: Build and push chat-ui
-        uses: docker/build-push-action@v6
-        with:
-          context: apps/chat-ui
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-chat-ui:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-chat-ui:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-${{ matrix.app }}:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-${{ matrix.app }}:${{ github.sha }}
