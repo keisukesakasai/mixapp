@@ -42,7 +42,7 @@ async def api_ask(body: AskBody):
         raise HTTPException(status_code=502, detail=str(e))
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def index():
     return FileResponse(STATIC_DIR / "index.html")
 
