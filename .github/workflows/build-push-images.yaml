@@ -1,0 +1,52 @@
+# LLM アプリ・Load generator イメージをビルドして GHCR にプッシュ
+name: Build and push images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/llm-app/**'
+      - 'apps/load-generator/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push llm-app
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/llm-app
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-llm-app:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-llm-app:${{ github.sha }}
+
+      - name: Build and push load-generator
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/load-generator
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-load-generator:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-load-generator:${{ github.sha }}
