@@ -1,5 +1,5 @@
 ---
-description: デプロイフロー統一（Git push → workflow ビルド → デプロイ）と新規 Agent 追加時のチェックリスト
+description: デプロイフロー統一（Git push → workflow ビルド → デプロイ）と新規 Agent 追加時のチェックリスト。K8s 変更時は反映まで行う。
 alwaysApply: true
 ---
 
@@ -7,6 +7,22 @@ alwaysApply: true
 
 - **運用**: デプロイは **Git に push → GitHub Actions でビルド → GHCR へ push** されたイメージを使い、`infra/k8s/*.yaml` を `kubectl apply` してデプロイする。手元の Docker ビルドでデプロイしない。
 - **ワークフロー**: `.github/workflows/build-push-images.yaml` が `main` の `apps/**` 変更で全 Agent のイメージをビルド・GHCR にプッシュする。**Agent 一覧は workflow の `matrix.app` が唯一の定義場所**。
+
+## K8s マニフェスト変更時は「反映」まで行う
+
+`infra/k8s/*.yaml` や Agent 用のデプロイ設定を編集したら、**ファイルの編集だけで終えず、クラスターへの反映まで行う**。
+
+1. **変更したマニフェストを apply する**
+   ```bash
+   kubectl apply -f infra/k8s/<変更したファイル>.yaml
+   ```
+   複数変更した場合は対象をまとめて apply（例: `kubectl apply -f infra/k8s/` または該当ファイルを列挙）。
+
+2. **必要に応じてロールアウト再起動**
+   - Deployment の env やイメージを変えた場合: `kubectl rollout restart deploy/<name> -n mixapp`
+   - DaemonSet（例: datadog-agent）を変えた場合: `kubectl rollout restart daemonset/<name> -n mixapp`
+
+3. **前提**: `kubectl` でクラスター（例: mixapp 名前空間）に接続できる環境であること。接続できない場合は「反映手順を README に書く」「ユーザーに apply コマンドを案内する」まで行う。
 
 ## 新規 Agent を追加するとき（必ず揃える）
 
