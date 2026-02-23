@@ -20,7 +20,7 @@ spec:
           image: ghcr.io/keisukesakasai/mixapp-load-generator:latest
           env:
             - name: LLM_APP_URL
-              value: "http://llm-app:8000"
+              value: "http://investor-agent:8000"
             # 質問送信間隔（秒）
             - name: INTERVAL_SEC
               value: "2"

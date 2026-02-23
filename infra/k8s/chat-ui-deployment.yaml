@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-ui
+  namespace: mixapp
+  labels:
+    app: chat-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat-ui
+  template:
+    metadata:
+      labels:
+        app: chat-ui
+    spec:
+      containers:
+        - name: chat-ui
+          image: ghcr.io/keisukesakasai/mixapp-chat-ui:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: INVESTOR_AGENT_URL
+              value: "http://investor-agent:8000"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-ui
+  namespace: mixapp
+  labels:
+    app: chat-ui
+spec:
+  type: LoadBalancer
+  selector:
+    app: chat-ui
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http

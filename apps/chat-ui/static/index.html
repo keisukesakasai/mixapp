@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Investor Agent チャット</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --user-bg: #1f6feb;
+      --agent-bg: #238636;
+      --input-bg: #21262d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+    header p { margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--text-muted); }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .msg {
+      max-width: 85%;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--user-bg);
+      color: #fff;
+    }
+    .msg.agent {
+      align-self: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .msg .meta { font-size: 0.7rem; opacity: 0.8; margin-top: 0.5rem; }
+    #form {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    #form form {
+      display: flex;
+      gap: 0.5rem;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    #question {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    #question::placeholder { color: var(--text-muted); }
+    #question:focus { outline: none; border-color: var(--user-bg); }
+    button[type="submit"] {
+      padding: 0.75rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--agent-bg);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button[type="submit"]:hover { opacity: 0.9; }
+    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error { color: #f85149; font-size: 0.875rem; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Investor Agent チャット</h1>
+    <p>投資相談のやりとりがここに表示されます。</p>
+  </header>
+  <div id="messages"></div>
+  <div id="form">
+    <form id="chat-form">
+      <input type="text" id="question" name="question" placeholder="例: 今買うべき株を3つ教えて" autocomplete="off">
+      <button type="submit">送信</button>
+    </form>
+    <div id="error" class="error" style="display:none;"></div>
+  </div>
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('question');
+    const errorEl = document.getElementById('error');
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+    function clearError() {
+      errorEl.textContent = '';
+      errorEl.style.display = 'none';
+    }
+
+    function appendMessage(role, content, model) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      const label = role === 'user' ? 'あなた' : 'Investor Agent';
+      div.innerHTML = '<strong>' + escapeHtml(label) + '</strong><br>' + escapeHtml(content) +
+        (model ? '<div class="meta">' + escapeHtml(model) + '</div>' : '');
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+      const el = document.createElement('div');
+      el.textContent = s;
+      return el.innerHTML;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const q = input.value.trim();
+      if (!q) return;
+      input.value = '';
+      clearError();
+      appendMessage('user', q);
+      const btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q })
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          showError(data.detail || data.message || 'エラー: ' + r.status);
+          return;
+        }
+        appendMessage('agent', data.answer || '', data.model || '');
+      } catch (err) {
+        showError('通信エラー: ' + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

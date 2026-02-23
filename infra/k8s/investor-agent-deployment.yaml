@@ -1,22 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: llm-app
+  name: investor-agent
   namespace: mixapp
   labels:
-    app: llm-app
+    app: investor-agent
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: llm-app
+      app: investor-agent
   template:
     metadata:
       labels:
-        app: llm-app
+        app: investor-agent
     spec:
       containers:
-        - name: llm-app
+        - name: investor-agent
+          # GHCR のパッケージ名が mixapp-llm-app のためこのイメージを参照（中身は Investor Agent）
           image: ghcr.io/keisukesakasai/mixapp-llm-app:latest
           ports:
             - containerPort: 8000
@@ -24,7 +25,7 @@ spec:
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: llm-app-openai
+                  name: investor-agent-openai
                   key: openai-api-key
             - name: MODEL
               value: "gpt-4o-mini"
@@ -44,13 +45,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: llm-app
+  name: investor-agent
   namespace: mixapp
   labels:
-    app: llm-app
+    app: investor-agent
 spec:
   selector:
-    app: llm-app
+    app: investor-agent
   ports:
     - port: 8000
       targetPort: 8000

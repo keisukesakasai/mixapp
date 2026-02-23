@@ -16,10 +16,11 @@ build/
 *.swo
 .DS_Store
 
-# Env
+# Env / Secrets（Git に上げない）
 .env
 .env.local
 *.local
+secrets.env
 
 # Logs
 *.log

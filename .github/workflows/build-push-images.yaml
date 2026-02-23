@@ -1,12 +1,13 @@
-# LLM アプリ・Load generator イメージをビルドして GHCR にプッシュ
+# Investor Agent・Load generator イメージをビルドして GHCR にプッシュ
 name: Build and push images
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/llm-app/**'
+      - 'apps/investor-agent/**'
       - 'apps/load-generator/**'
+      - 'apps/chat-ui/**'
   workflow_dispatch:
 
 env:
@@ -33,14 +34,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push llm-app
+      - name: Build and push investor-agent
         uses: docker/build-push-action@v6
         with:
-          context: apps/llm-app
+          context: apps/investor-agent
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-llm-app:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-llm-app:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-investor-agent:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-investor-agent:${{ github.sha }}
 
       - name: Build and push load-generator
         uses: docker/build-push-action@v6
@@ -50,3 +51,12 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-load-generator:latest
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-load-generator:${{ github.sha }}
+
+      - name: Build and push chat-ui
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/chat-ui
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-chat-ui:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mixapp-chat-ui:${{ github.sha }}
