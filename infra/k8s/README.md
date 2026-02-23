@@ -2,11 +2,16 @@
 
 Investor Agent・Load generator・チャット UI・Redis を EKS にデプロイするためのマニフェストです。やりとりは Redis にスタックされ、UI は参照のみ。
 
+## デプロイフロー（統一）
+
+**Git push → GitHub Actions でビルド → GHCR へ push → 本マニフェストで `kubectl apply`** でデプロイする。Agent のイメージ一覧は [build-push-images.yaml](../../.github/workflows/build-push-images.yaml) の `matrix.app` で定義されている。新規 Agent 追加時は `.cursor/rules/deployment.mdc` のチェックリストに従うこと。
+
 ## 前提
 
 - EKS クラスターが作成済み（[infra/eks/](../eks/) を参照）
 - `kubectl` でクラスターに接続済み
 - イメージは **main ブランチへの push で GitHub Actions が自動ビルド・GHCR へプッシュ**します（[.github/workflows/build-push-images.yaml](../../.github/workflows/build-push-images.yaml)）。手動でビルドする場合は下記「イメージのビルドとプッシュ」を参照。
+- **CI デプロイ**: 上記ワークフローはビルド後に EKS へ自動デプロイします。リポジトリの GitHub Secrets に `AWS_ACCESS_KEY_ID` と `AWS_SECRET_ACCESS_KEY`（EKS クラスターにアクセスできる IAM ユーザー）を登録してください。
 
 ## イメージのビルドとプッシュ
 

@@ -27,7 +27,8 @@ uvicorn main:app --reload --port 8000
 ## API
 
 - `GET /health` — ヘルスチェック（`agent: investor` を返す）
-- `POST /ask` — 投資相談の質問を送り回答を得る。応答は Redis に積まれる。  
-  Body: `{"question": "今買うべき株を3つ教えて"}` → `{"answer": "...", "model": "..."}`
+- `POST /ask` — 投資相談の質問を送り回答を得る。応答は Redis にセッション別で積まれる。  
+  Body: `{"question": "今買うべき株を3つ教えて", "session_id": "optional"}` → `{"answer": "...", "model": "..."}`  
+  `session_id` を省略すると `"default"` として記録される。
 
 回答には「投資助言ではありません」の注意書きが含まれます。

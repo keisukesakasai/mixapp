@@ -13,6 +13,7 @@
       --text-muted: #8b949e;
       --user-bg: #1f6feb;
       --agent-bg: #238636;
+      --input-bg: #21262d;
     }
     * { box-sizing: border-box; }
     body {
@@ -36,7 +37,16 @@
     }
     header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
     header p { margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--text-muted); }
-    .header-right { display: flex; align-items: center; gap: 0.5rem; }
+    .header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    #sessionSelect {
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 0.875rem;
+      min-width: 180px;
+    }
     #refresh {
       padding: 0.4rem 0.75rem;
       border: 1px solid var(--border);
@@ -82,9 +92,13 @@
   <header>
     <div>
       <h1>Investor Agent やりとり</h1>
-      <p>Load generator や API 経由でスタックされた質問・回答を表示します（参照のみ）</p>
+      <p>セッションごとにやりとりを表示します（参照のみ）</p>
     </div>
     <div class="header-right">
+      <label for="sessionSelect">セッション:</label>
+      <select id="sessionSelect">
+        <option value="default">default</option>
+      </select>
       <span id="status" style="font-size:0.8rem;color:var(--text-muted)"></span>
       <button type="button" id="refresh">更新</button>
     </div>
@@ -92,6 +106,7 @@
   <div id="messages"></div>
   <script>
     const messagesEl = document.getElementById('messages');
+    const sessionSelect = document.getElementById('sessionSelect');
     const refreshBtn = document.getElementById('refresh');
     const statusEl = document.getElementById('status');
 
@@ -114,17 +129,32 @@
       return div;
     }
 
-    async function load() {
+    async function loadSessions() {
+      try {
+        const r = await fetch('/api/sessions');
+        const data = await r.json().catch(() => ({}));
+        const sessions = data.sessions || [];
+        const current = sessionSelect.value;
+        sessionSelect.innerHTML = sessions.length ? sessions.map(function (id) {
+          return '<option value="' + escapeHtml(id) + '">' + escapeHtml(id) + '</option>';
+        }).join('') : '<option value="default">default</option>';
+        if (sessions.indexOf(current) >= 0) sessionSelect.value = current;
+        else if (sessions.length) sessionSelect.value = sessions[0];
+      } catch (_) {}
+    }
+
+    async function loadMessages() {
+      const sessionId = sessionSelect.value || 'default';
       statusEl.textContent = '取得中...';
       refreshBtn.disabled = true;
       try {
-        const r = await fetch('/api/messages');
+        const r = await fetch('/api/messages?session_id=' + encodeURIComponent(sessionId));
         const data = await r.json().catch(() => ({}));
         messagesEl.innerHTML = '';
         if (data.error) {
           messagesEl.innerHTML = '<div class="error">' + escapeHtml(data.error) + '</div>';
         } else if (!data.messages || data.messages.length === 0) {
-          messagesEl.innerHTML = '<div class="empty">まだやりとりはありません。Load generator が動くか、Investor Agent に POST /ask するとここに積まれます。</div>';
+          messagesEl.innerHTML = '<div class="empty">このセッションにはまだやりとりがありません。</div>';
         } else {
           data.messages.forEach(function (m) {
             messagesEl.appendChild(renderMessage('user', m.question, null, m.timestamp));
@@ -141,6 +171,11 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
+    function load() {
+      loadSessions().then(loadMessages);
+    }
+
+    sessionSelect.addEventListener('change', loadMessages);
     refreshBtn.addEventListener('click', load);
     load();
     setInterval(load, 10000);

@@ -13,7 +13,11 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-REDIS_KEY_MESSAGES = "investor_agent:messages"
+REDIS_KEY_SESSION_IDS = "investor_agent:session_ids"
+
+
+def _session_key(session_id: str) -> str:
+    return f"investor_agent:session:{session_id}"
 
 # リポジトリルートの .env を読む（どこから実行しても）
 _THIS_DIR = Path(__file__).resolve().parent
@@ -41,6 +45,7 @@ class Settings(BaseSettings):
 
 class AskRequest(BaseModel):
     question: str
+    session_id: str = "default"
 
 
 class AskResponse(BaseModel):
@@ -81,16 +86,19 @@ app.state.openai_client = None
 app.state.redis: redis.Redis | None = None
 
 
-async def push_message(question: str, answer: str, model: str) -> None:
+async def push_message(question: str, answer: str, model: str, session_id: str) -> None:
     if not app.state.redis:
         return
+    sid = (session_id or "default").strip() or "default"
     payload = json.dumps({
         "question": question,
         "answer": answer,
         "model": model,
         "timestamp": round(time(), 3),
     }, ensure_ascii=False)
-    await app.state.redis.rpush(REDIS_KEY_MESSAGES, payload)
+    key = _session_key(sid)
+    await app.state.redis.rpush(key, payload)
+    await app.state.redis.sadd(REDIS_KEY_SESSION_IDS, sid)
 
 
 @app.on_event("startup")
@@ -123,7 +131,7 @@ async def ask(req: AskRequest):
         raise HTTPException(status_code=400, detail="question is required")
     try:
         answer, model_used = await get_completion(req.question)
-        await push_message(req.question, answer, model_used)
+        await push_message(req.question, answer, model_used, req.session_id)
         return AskResponse(answer=answer, model=model_used)
     except HTTPException:
         raise
