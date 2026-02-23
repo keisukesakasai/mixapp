@@ -154,8 +154,8 @@ def get_llm_url() -> str:
 
 
 def _eval_prompt_ratio() -> float:
-    # 有害・異常プロンプトの割合（既定 0.45 = 45%）。EVAL_PROMPT_RATIO で上書き可。
-    v = os.environ.get("EVAL_PROMPT_RATIO", "0.45")
+    # 有害・異常プロンプトの割合（既定 0.65 = 65%）。EVAL_PROMPT_RATIO で上書き可。
+    v = os.environ.get("EVAL_PROMPT_RATIO", "0.65")
     return max(0.0, min(1.0, float(v)))
 
 
