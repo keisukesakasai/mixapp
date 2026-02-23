@@ -29,6 +29,8 @@ spec:
                   key: openai-api-key
             - name: MODEL
               value: "gpt-4o-mini"
+            - name: REDIS_URL
+              value: "redis://redis:6379/0"
           livenessProbe:
             httpGet:
               path: /health

@@ -1,6 +1,6 @@
 # Kubernetes マニフェスト (mixapp)
 
-Investor Agent・Load generator・チャット UI を EKS にデプロイするためのマニフェストです。
+Investor Agent・Load generator・チャット UI・Redis を EKS にデプロイするためのマニフェストです。やりとりは Redis にスタックされ、UI は参照のみ。
 
 ## 前提
 
@@ -44,6 +44,7 @@ kubectl create secret generic investor-agent-openai -n mixapp \
 
 ```bash
 kubectl apply -f infra/k8s/namespace.yaml
+kubectl apply -f infra/k8s/redis-deployment.yaml
 kubectl apply -f infra/k8s/investor-agent-deployment.yaml
 kubectl apply -f infra/k8s/load-generator-deployment.yaml
 kubectl apply -f infra/k8s/chat-ui-deployment.yaml
@@ -65,5 +66,6 @@ kubectl logs -n mixapp -l app=load-generator -f
 kubectl delete -f infra/k8s/chat-ui-deployment.yaml
 kubectl delete -f infra/k8s/load-generator-deployment.yaml
 kubectl delete -f infra/k8s/investor-agent-deployment.yaml
+kubectl delete -f infra/k8s/redis-deployment.yaml
 kubectl delete -f infra/k8s/namespace.yaml
 ```

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Investor Agent チャット</title>
+  <title>Investor Agent やりとり</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -13,7 +13,6 @@
       --text-muted: #8b949e;
       --user-bg: #1f6feb;
       --agent-bg: #238636;
-      --input-bg: #21262d;
     }
     * { box-sizing: border-box; }
     body {
@@ -29,9 +28,25 @@
       padding: 1rem 1.5rem;
       border-bottom: 1px solid var(--border);
       background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
     header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
     header p { margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--text-muted); }
+    .header-right { display: flex; align-items: center; gap: 0.5rem; }
+    #refresh {
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    #refresh:hover { background: var(--border); }
     #messages {
       flex: 1;
       overflow-y: auto;
@@ -59,113 +74,76 @@
       border: 1px solid var(--border);
     }
     .msg .meta { font-size: 0.7rem; opacity: 0.8; margin-top: 0.5rem; }
-    #form {
-      padding: 1rem 1.5rem;
-      border-top: 1px solid var(--border);
-      background: var(--surface);
-    }
-    #form form {
-      display: flex;
-      gap: 0.5rem;
-      max-width: 720px;
-      margin: 0 auto;
-    }
-    #question {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--input-bg);
-      color: var(--text);
-      font-size: 1rem;
-    }
-    #question::placeholder { color: var(--text-muted); }
-    #question:focus { outline: none; border-color: var(--user-bg); }
-    button[type="submit"] {
-      padding: 0.75rem 1.25rem;
-      border: none;
-      border-radius: 8px;
-      background: var(--agent-bg);
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    button[type="submit"]:hover { opacity: 0.9; }
-    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
-    .error { color: #f85149; font-size: 0.875rem; margin-top: 0.25rem; }
+    .empty { color: var(--text-muted); text-align: center; padding: 2rem; }
+    .error { color: #f85149; font-size: 0.875rem; padding: 1rem 1.5rem; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Investor Agent チャット</h1>
-    <p>投資相談のやりとりがここに表示されます。</p>
+    <div>
+      <h1>Investor Agent やりとり</h1>
+      <p>Load generator や API 経由でスタックされた質問・回答を表示します（参照のみ）</p>
+    </div>
+    <div class="header-right">
+      <span id="status" style="font-size:0.8rem;color:var(--text-muted)"></span>
+      <button type="button" id="refresh">更新</button>
+    </div>
   </header>
   <div id="messages"></div>
-  <div id="form">
-    <form id="chat-form">
-      <input type="text" id="question" name="question" placeholder="例: 今買うべき株を3つ教えて" autocomplete="off">
-      <button type="submit">送信</button>
-    </form>
-    <div id="error" class="error" style="display:none;"></div>
-  </div>
   <script>
     const messagesEl = document.getElementById('messages');
-    const form = document.getElementById('chat-form');
-    const input = document.getElementById('question');
-    const errorEl = document.getElementById('error');
-
-    function showError(msg) {
-      errorEl.textContent = msg;
-      errorEl.style.display = 'block';
-    }
-    function clearError() {
-      errorEl.textContent = '';
-      errorEl.style.display = 'none';
-    }
-
-    function appendMessage(role, content, model) {
-      const div = document.createElement('div');
-      div.className = 'msg ' + role;
-      const label = role === 'user' ? 'あなた' : 'Investor Agent';
-      div.innerHTML = '<strong>' + escapeHtml(label) + '</strong><br>' + escapeHtml(content) +
-        (model ? '<div class="meta">' + escapeHtml(model) + '</div>' : '');
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
+    const refreshBtn = document.getElementById('refresh');
+    const statusEl = document.getElementById('status');
 
     function escapeHtml(s) {
+      if (s == null) return '';
       const el = document.createElement('div');
-      el.textContent = s;
+      el.textContent = String(s);
       return el.innerHTML;
     }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const q = input.value.trim();
-      if (!q) return;
-      input.value = '';
-      clearError();
-      appendMessage('user', q);
-      const btn = form.querySelector('button[type="submit"]');
-      btn.disabled = true;
+    function renderMessage(role, content, model, timestamp) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      const label = role === 'user' ? '質問' : 'Investor Agent';
+      let meta = '';
+      if (model) meta += escapeHtml(model);
+      if (timestamp) meta += (meta ? ' · ' : '') + new Date(timestamp * 1000).toLocaleString('ja-JP');
+      div.innerHTML = '<strong>' + escapeHtml(label) + '</strong><br>' + escapeHtml(content) +
+        (meta ? '<div class="meta">' + meta + '</div>' : '');
+      return div;
+    }
+
+    async function load() {
+      statusEl.textContent = '取得中...';
+      refreshBtn.disabled = true;
       try {
-        const r = await fetch('/api/ask', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: q })
-        });
+        const r = await fetch('/api/messages');
         const data = await r.json().catch(() => ({}));
-        if (!r.ok) {
-          showError(data.detail || data.message || 'エラー: ' + r.status);
-          return;
+        messagesEl.innerHTML = '';
+        if (data.error) {
+          messagesEl.innerHTML = '<div class="error">' + escapeHtml(data.error) + '</div>';
+        } else if (!data.messages || data.messages.length === 0) {
+          messagesEl.innerHTML = '<div class="empty">まだやりとりはありません。Load generator が動くか、Investor Agent に POST /ask するとここに積まれます。</div>';
+        } else {
+          data.messages.forEach(function (m) {
+            messagesEl.appendChild(renderMessage('user', m.question, null, m.timestamp));
+            messagesEl.appendChild(renderMessage('agent', m.answer, m.model, m.timestamp));
+          });
         }
-        appendMessage('agent', data.answer || '', data.model || '');
+        statusEl.textContent = '最終更新: ' + new Date().toLocaleTimeString('ja-JP');
       } catch (err) {
-        showError('通信エラー: ' + err.message);
+        messagesEl.innerHTML = '<div class="error">通信エラー: ' + escapeHtml(err.message) + '</div>';
+        statusEl.textContent = '';
       } finally {
-        btn.disabled = false;
+        refreshBtn.disabled = false;
       }
-    });
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    refreshBtn.addEventListener('click', load);
+    load();
+    setInterval(load, 10000);
   </script>
 </body>
 </html>

@@ -22,8 +22,8 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: INVESTOR_AGENT_URL
-              value: "http://investor-agent:8000"
+            - name: REDIS_URL
+              value: "redis://redis:6379/0"
           livenessProbe:
             httpGet:
               path: /health

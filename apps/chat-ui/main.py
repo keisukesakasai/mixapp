@@ -1,24 +1,36 @@
 """
-チャット UI: Investor Agent とのやりとりが見える Web 画面
+チャット UI: Redis にスタックされた Investor Agent とのやりとりを参照して表示するだけ
 """
+import json
 import os
 from pathlib import Path
 
-from pydantic import BaseModel
+import redis.asyncio as redis
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-import httpx
 
-
-class AskBody(BaseModel):
-    question: str
-
-INVESTOR_AGENT_URL = os.environ.get("INVESTOR_AGENT_URL", "http://investor-agent:8000").rstrip("/")
-ASK_URL = f"{INVESTOR_AGENT_URL}/ask"
+REDIS_KEY_MESSAGES = "investor_agent:messages"
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 
 app = FastAPI(title="Investor Agent Chat UI")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 STATIC_DIR.mkdir(exist_ok=True)
+app.state.redis: redis.Redis | None = None
+
+
+@app.on_event("startup")
+async def startup():
+    try:
+        app.state.redis = redis.from_url(REDIS_URL, decode_responses=True)
+        await app.state.redis.ping()
+    except Exception:
+        app.state.redis = None
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    if app.state.redis:
+        await app.state.redis.aclose()
 
 
 @app.get("/health")
@@ -26,18 +38,20 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post("/api/ask")
-async def api_ask(body: AskBody):
-    if not body.question or not body.question.strip():
-        raise HTTPException(status_code=400, detail="question is required")
+@app.get("/api/messages")
+async def get_messages():
+    """Redis にスタックされたやりとりを古い順で返す"""
+    if not app.state.redis:
+        return {"messages": [], "error": "Redis not connected"}
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            r = await client.post(ASK_URL, json={"question": body.question.strip()})
-            r.raise_for_status()
-            body = r.json()
-            return {"answer": body.get("answer", ""), "model": body.get("model", "")}
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+        raw = await app.state.redis.lrange(REDIS_KEY_MESSAGES, 0, -1)
+        messages = []
+        for s in raw:
+            try:
+                messages.append(json.loads(s))
+            except json.JSONDecodeError:
+                continue
+        return {"messages": messages}
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
