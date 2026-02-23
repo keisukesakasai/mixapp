@@ -79,11 +79,25 @@ kubectl create secret generic datadog-secret -n mixapp \
   --from-literal=api-key=your-datadog-api-key
 ```
 
+**API キーを .env に置く場合**: リポジトリルートの `.env` に `DD_API_KEY=あなたのキー` を追加しておくと（このファイルは .gitignore で Git に含まれない）、次のコマンドで Secret を作成・更新できる。
+
+```bash
+# リポジトリルートで
+source .env
+kubectl create secret generic datadog-secret -n mixapp \
+  --from-literal=api-key="$DD_API_KEY" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+続けて Agent を再起動して新しいキーを読み込ませる: `kubectl rollout restart daemonset/datadog-agent -n mixapp`
+
 Datadog API キーは [Datadog Organization Settings > API Keys](https://app.datadoghq.com/organization-settings/api-keys) で取得できます。
 
 ## Datadog Agent のデプロイ（観測を行う場合）
 
 LLM アプリ（Investor Agent）のトレース・LLM Observability を Datadog で見るには、クラスターに Datadog Agent を入れます。**Datadog Operator** を使う方法（推奨）です。
+
+**Kubernetes Explore**（Pods / Deployments 等のオーケストレーターリソース表示）を使う場合は、Datadog Agent >= v7.33.0 と Cluster Agent >= v1.18.0 が必要です。Operator v1.0.0+ はデフォルトで Cluster Agent をデプロイし、`datadog-agent.yaml` で `orchestratorExplorer.enabled: true` を設定済みです。
 
 1. **Helm で Datadog Operator をインストール**（クラスターに 1 回だけ）
 

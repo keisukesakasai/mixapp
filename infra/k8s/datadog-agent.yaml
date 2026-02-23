@@ -1,5 +1,10 @@
 # Datadog Agent (Datadog Operator でデプロイ)
 # 事前に Helm で Operator をインストールし、Secret を作成すること（infra/k8s/README.md 参照）
+#
+# Kubernetes Explore（Pods 等のオーケストレーターリソース収集）には以下が必要:
+# - Datadog Agent >= v7.33.0, Cluster Agent >= v1.18.0（Operator はデフォルトで Cluster Agent をデプロイ）
+# - features.orchestratorExplorer.enabled: true
+# 参考: https://docs.datadoghq.com/containers/monitoring/kubernetes_explorer_configuration/
 apiVersion: datadoghq.com/v2alpha1
 kind: DatadogAgent
 metadata:
@@ -9,6 +14,7 @@ spec:
   global:
     clusterName: mixapp-cluster
     site: datadoghq.com
+    env: staging
     credentials:
       apiSecret:
         secretName: datadog-secret
@@ -19,3 +25,6 @@ spec:
       hostPortConfig:
         enabled: true
         hostPort: 8126
+    # Kubernetes Explore で Pods/Deployments 等を収集（Agent >= 7.33, Cluster Agent >= 1.18）
+    orchestratorExplorer:
+      enabled: true
