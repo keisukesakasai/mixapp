@@ -18,6 +18,7 @@ spec:
       containers:
         - name: chat-ui
           image: ghcr.io/keisukesakasai/mixapp-chat-ui:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:
