@@ -17,8 +17,7 @@ spec:
     spec:
       containers:
         - name: investor-agent
-          # GHCR のパッケージ名が mixapp-llm-app のためこのイメージを参照（中身は Investor Agent）
-          image: ghcr.io/keisukesakasai/mixapp-llm-app:latest
+          image: ghcr.io/keisukesakasai/mixapp-investor-agent:latest
           ports:
             - containerPort: 8000
           env:
