@@ -14,6 +14,7 @@
 | REDIS_URL | redis://redis:6379/0 | やりとりをスタックする Redis の URL |
 | DD_API_KEY | 観測時 | Datadog API キー（APM / LLM Observability 用）。K8s では Secret `datadog-secret` から渡す。 |
 | DD_LLMOBS_ENABLED | - | `1` で LLM Observability を有効化（K8s ではデプロイ側で設定済み） |
+| DD_LLMOBS_ML_APP | - | LLM アプリ名（Evaluations 一覧に表示される名前）。K8s では `investor-agent` を設定済み。 |
 | DD_AGENT_HOST | - | トレース送信先の Datadog Agent ホスト。K8s では同一ノードの Agent に自動設定。 |
 | DD_ENV | - | 環境タグ（例: `staging`）。Datadog で env で絞り込む用。K8s では `staging` を設定済み。 |
 
@@ -31,8 +32,12 @@ uvicorn main:app --reload --port 8000
 Datadog でトレース・LLM Observability を見る場合は `ddtrace-run` で起動し、`DD_API_KEY` と `DD_LLMOBS_ENABLED=1` を設定する（`.env` に `DD_API_KEY=` を追加しても可）。
 
 ```bash
-DD_LLMOBS_ENABLED=1 DD_API_KEY=your-datadog-api-key ddtrace-run uvicorn main:app --reload --port 8000
+DD_LLMOBS_ENABLED=1 DD_LLMOBS_ML_APP=investor-agent DD_API_KEY=your-datadog-api-key ddtrace-run uvicorn main:app --reload --port 8000
 ```
+
+**Datadog で確認する場所**: **LLM Observability** → 左メニュー **Applications** で `investor-agent` を選択 → **Traces** でプロンプト・応答のトレース一覧、**Evaluations** で toxicity / sentiment / prompt-injection / failure-to-answer などの評価結果。評価はトレース取り込み後に自動実行されるため、load-generator でトラフィックを流してから数分待つと表示される。
+
+**評価が表示されない場合**: (1) `datadog-secret` が mixapp 名前空間にあり API キーが正しいか (2) investor-agent と datadog-agent が同一ノードで動いているか（`kubectl get pods -n mixapp -o wide`）(3) Datadog の **APM → Traces** で `service:investor-agent` のトレースが届いているか を確認する。
 
 **LLM Observability の公式手順**: [Automatic Instrumentation for LLM Observability (Python)](https://docs.datadoghq.com/ja/llm_observability/instrumentation/auto_instrumentation?tab=python)。本アプリは OpenAI Python SDK の `chat.completions.create` を使用しており、ddtrace 2.9.0+ と `DD_LLMOBS_ENABLED=1` で自動計測されます。
 

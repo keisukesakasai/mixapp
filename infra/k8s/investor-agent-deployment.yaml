@@ -35,9 +35,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
-            # Datadog LLM Observability 有効化
+            # Datadog LLM Observability 有効化（DD_LLMOBS_ML_APP でアプリ名を指定し Evaluations 一覧に表示）
             - name: DD_LLMOBS_ENABLED
               value: "1"
+            - name: DD_LLMOBS_ML_APP
+              value: "investor-agent"
             - name: DD_SERVICE
               value: "investor-agent"
             - name: DD_ENV

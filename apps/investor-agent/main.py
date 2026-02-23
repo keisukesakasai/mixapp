@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
 
 
+# 質問が実質ないとみなす文言（LLM を呼ばず 400 を返す）
+NO_QUESTION_PLACEHOLDERS = frozenset({"（質問なし）", "(質問なし)", "（なし）", "(なし)"})
+
+
 class AskRequest(BaseModel):
     question: str
     session_id: str = "default"
@@ -125,9 +129,14 @@ async def health():
     return {"status": "ok", "agent": "investor"}
 
 
+def _is_no_question(q: str) -> bool:
+    s = q.strip()
+    return not s or s in NO_QUESTION_PLACEHOLDERS
+
+
 @app.post("/ask", response_model=AskResponse)
 async def ask(req: AskRequest):
-    if not req.question.strip():
+    if _is_no_question(req.question):
         raise HTTPException(status_code=400, detail="question is required")
     try:
         answer, model_used = await get_completion(req.question)
