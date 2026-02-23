@@ -1,0 +1,29 @@
+# EKS cluster for mixapp (LLM app + load generator)
+# Account: Datadog - mcse-sandbox (369042512949)
+# Create: AWS_PROFILE=dd-mcse-sandbox eksctl create cluster -f infra/eks/cluster.yaml
+# Delete: AWS_PROFILE=dd-mcse-sandbox eksctl delete cluster -f infra/eks/cluster.yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: sakasai-mixapp-eks
+  region: ap-northeast-1
+  version: "1.32"
+
+# NAT ゲートウェイを使わずパブリックサブネットのみ（リージョンの NAT 上限 5 に達している場合用）
+vpc:
+  nat:
+    gateway: Disable
+
+availabilityZones:
+  - ap-northeast-1a
+  - ap-northeast-1c
+
+managedNodeGroups:
+  - name: sakasai-ng-default
+    instanceTypes:
+      - t3.medium
+    minSize: 1
+    maxSize: 4
+    desiredCapacity: 2
+    volumeSize: 30

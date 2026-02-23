@@ -42,11 +42,14 @@ fi
 echo "Logging in to $REGISTRY as $REPO_OWNER ..."
 echo "$GITHUB_TOKEN" | docker login "$REGISTRY" -u "$REPO_OWNER" --password-stdin
 
+# EKS ノードは x86_64。Mac ARM でビルドすると arm64 になり exec format error になるため --platform 必須
+PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
+
 build_push_one() {
   local app="$1"
   local tag="${REGISTRY}/${REPO_OWNER}/mixapp-${app}:latest"
-  echo "--- Build and push: $app ---"
-  docker build -t "$tag" "apps/$app"
+  echo "--- Build and push: $app (platform=$PLATFORM) ---"
+  docker build --platform "$PLATFORM" -t "$tag" "apps/$app"
   docker push "$tag"
   echo "Verify: pull same image ..."
   docker pull "$tag"

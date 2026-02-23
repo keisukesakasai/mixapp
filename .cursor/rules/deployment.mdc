@@ -1,0 +1,22 @@
+---
+description: デプロイフロー統一（Git push → workflow ビルド → デプロイ）と新規 Agent 追加時のチェックリスト
+alwaysApply: true
+---
+
+# デプロイフロー（全 Agent 共通）
+
+- **運用**: デプロイは **Git に push → GitHub Actions でビルド → GHCR へ push** されたイメージを使い、`infra/k8s/*.yaml` を `kubectl apply` してデプロイする。手元の Docker ビルドでデプロイしない。
+- **ワークフロー**: `.github/workflows/build-push-images.yaml` が `main` の `apps/**` 変更で全 Agent のイメージをビルド・GHCR にプッシュする。**Agent 一覧は workflow の `matrix.app` が唯一の定義場所**。
+
+## 新規 Agent を追加するとき（必ず揃える）
+
+1. **アプリ**: `apps/<agent-name>/` にコードを置く（例: `apps/my-agent/`）。
+2. **CI**: `.github/workflows/build-push-images.yaml` の `matrix.app` に `<agent-name>` を **1 行追加**する。
+   ```yaml
+   matrix:
+     app: [investor-agent, load-generator, chat-ui, my-agent]
+   ```
+3. **K8s**: `infra/k8s/<agent-name>-deployment.yaml` を追加する。イメージは `ghcr.io/<owner>/mixapp-<agent-name>:latest`（既存の `*-deployment.yaml` をコピーして名前・環境変数のみ変更）。
+4. **README**: `infra/k8s/README.md` の「イメージのビルドとプッシュ」「デプロイ」「削除」に当該 Agent のコマンド・マニフェストを追加する。
+
+これらを揃えないと、新 Agent は push してもビルドされず、デプロイ手順からも抜ける。
