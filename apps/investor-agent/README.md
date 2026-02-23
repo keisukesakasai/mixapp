@@ -12,6 +12,9 @@
 | MODEL | - | モデル名（既定: gpt-4o-mini） |
 | PORT | - | 待ち受けポート（既定: 8000） |
 | REDIS_URL | redis://redis:6379/0 | やりとりをスタックする Redis の URL |
+| DD_API_KEY | 観測時 | Datadog API キー（APM / LLM Observability 用）。K8s では Secret `datadog-secret` から渡す。 |
+| DD_LLMOBS_ENABLED | - | `1` で LLM Observability を有効化（K8s ではデプロイ側で設定済み） |
+| DD_AGENT_HOST | - | トレース送信先の Datadog Agent ホスト。K8s では同一ノードの Agent に自動設定。 |
 
 ## ローカル実行
 
@@ -22,6 +25,12 @@ cd apps/investor-agent
 pip install -r requirements.txt
 # OPENAI_API_KEY は .env に書くか、ここで export してもよい
 uvicorn main:app --reload --port 8000
+```
+
+Datadog でトレース・LLM Observability を見る場合は `ddtrace-run` で起動し、`DD_API_KEY` と `DD_LLMOBS_ENABLED=1` を設定する（`.env` に `DD_API_KEY=` を追加しても可）。
+
+```bash
+DD_LLMOBS_ENABLED=1 DD_API_KEY=your-datadog-api-key ddtrace-run uvicorn main:app --reload --port 8000
 ```
 
 ## API

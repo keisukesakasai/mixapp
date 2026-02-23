@@ -65,20 +65,56 @@ docker push ghcr.io/keisukesakasai/mixapp-chat-ui:latest
 
 ## Secret の作成
 
-Investor Agent は OpenAI API キーを必要とします。デプロイ前に Secret を作成してください。
+Investor Agent は OpenAI API キーを必要とします。Datadog 観測（APM / LLM Observability）を使う場合は **Datadog API キー**も必要です。デプロイ前に Secret を作成してください。
 
 ```bash
 kubectl create namespace mixapp --dry-run=client -o yaml | kubectl apply -f -
 
+# OpenAI（必須）
 kubectl create secret generic investor-agent-openai -n mixapp \
   --from-literal=openai-api-key=sk-your-openai-api-key
+
+# Datadog（APM / LLM Observability 用。観測する場合は必須）
+kubectl create secret generic datadog-secret -n mixapp \
+  --from-literal=api-key=your-datadog-api-key
 ```
+
+Datadog API キーは [Datadog Organization Settings > API Keys](https://app.datadoghq.com/organization-settings/api-keys) で取得できます。
+
+## Datadog Agent のデプロイ（観測を行う場合）
+
+LLM アプリ（Investor Agent）のトレース・LLM Observability を Datadog で見るには、クラスターに Datadog Agent を入れます。**Datadog Operator** を使う方法（推奨）です。
+
+1. **Helm で Datadog Operator をインストール**（クラスターに 1 回だけ）
+
+   ```bash
+   helm repo add datadog https://helm.datadoghq.com
+   helm install datadog-operator datadog/datadog-operator
+   ```
+
+2. **上記「Secret の作成」で `datadog-secret` を mixapp 名前空間に作成済みであること**
+
+3. **Datadog Agent を適用**
+
+   ```bash
+   kubectl apply -f infra/k8s/datadog-agent.yaml
+   ```
+
+4. **確認**: Agent の DaemonSet が各ノードで動いていること
+
+   ```bash
+   kubectl get daemonset -n mixapp
+   ```
+
+`datadog-agent.yaml` の `spec.global.site` はリージョンに合わせて変更できます（例: 日本リージョンは `ap1.datadoghq.com`）。`spec.global.clusterName` は任意のクラスター名です。
 
 ## デプロイ
 
 ```bash
 kubectl apply -f infra/k8s/namespace.yaml
 kubectl apply -f infra/k8s/redis-deployment.yaml
+# Datadog 観測を行う場合（上記手順で Secret 作成済みなら）
+kubectl apply -f infra/k8s/datadog-agent.yaml
 kubectl apply -f infra/k8s/investor-agent-deployment.yaml
 kubectl apply -f infra/k8s/load-generator-deployment.yaml
 kubectl apply -f infra/k8s/chat-ui-deployment.yaml
@@ -100,6 +136,9 @@ kubectl logs -n mixapp -l app=load-generator -f
 kubectl delete -f infra/k8s/chat-ui-deployment.yaml
 kubectl delete -f infra/k8s/load-generator-deployment.yaml
 kubectl delete -f infra/k8s/investor-agent-deployment.yaml
+kubectl delete -f infra/k8s/datadog-agent.yaml   # Datadog を入れた場合
 kubectl delete -f infra/k8s/redis-deployment.yaml
 kubectl delete -f infra/k8s/namespace.yaml
 ```
+
+Datadog Operator 自体を削除する場合: `helm uninstall datadog-operator`
