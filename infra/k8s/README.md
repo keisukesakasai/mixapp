@@ -49,15 +49,15 @@ chmod +x scripts/docker-push-ghcr.sh
 echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin
 
 # Investor Agent
-docker build -t ghcr.io/keisukesakasai/mixapp-investor-agent:latest apps/investor-agent
+docker build --platform linux/amd64 -t ghcr.io/keisukesakasai/mixapp-investor-agent:latest apps/investor-agent
 docker push ghcr.io/keisukesakasai/mixapp-investor-agent:latest
 
 # Load generator
-docker build -t ghcr.io/keisukesakasai/mixapp-load-generator:latest apps/load-generator
+docker build --platform linux/amd64 -t ghcr.io/keisukesakasai/mixapp-load-generator:latest apps/load-generator
 docker push ghcr.io/keisukesakasai/mixapp-load-generator:latest
 
 # Chat UI
-docker build -t ghcr.io/keisukesakasai/mixapp-chat-ui:latest apps/chat-ui
+docker build --platform linux/amd64 -t ghcr.io/keisukesakasai/mixapp-chat-ui:latest apps/chat-ui
 docker push ghcr.io/keisukesakasai/mixapp-chat-ui:latest
 ```
 
