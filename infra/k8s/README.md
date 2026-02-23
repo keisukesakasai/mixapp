@@ -134,6 +134,17 @@ kubectl apply -f infra/k8s/load-generator-deployment.yaml
 kubectl apply -f infra/k8s/chat-ui-deployment.yaml
 ```
 
+### イメージ更新後の反映（コード変更後）
+
+Git push で GitHub Actions がイメージをビルド・GHCR に push したあと、以下で新しい Pod に切り替える。
+
+```bash
+kubectl rollout restart deploy/load-generator -n mixapp
+# 必要に応じて
+kubectl rollout restart deploy/investor-agent -n mixapp
+kubectl rollout restart deploy/chat-ui -n mixapp
+```
+
 ## 確認
 
 ```bash

@@ -40,6 +40,8 @@ spec:
               value: "1"
             - name: DD_SERVICE
               value: "investor-agent"
+            - name: DD_ENV
+              value: "staging"
             # 観測時は datadog-secret を作成すること。未作成の場合は optional のため Pod は起動するが LLM Obs は無効。
             - name: DD_API_KEY
               valueFrom:

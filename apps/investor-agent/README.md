@@ -15,6 +15,7 @@
 | DD_API_KEY | 観測時 | Datadog API キー（APM / LLM Observability 用）。K8s では Secret `datadog-secret` から渡す。 |
 | DD_LLMOBS_ENABLED | - | `1` で LLM Observability を有効化（K8s ではデプロイ側で設定済み） |
 | DD_AGENT_HOST | - | トレース送信先の Datadog Agent ホスト。K8s では同一ノードの Agent に自動設定。 |
+| DD_ENV | - | 環境タグ（例: `staging`）。Datadog で env で絞り込む用。K8s では `staging` を設定済み。 |
 
 ## ローカル実行
 
@@ -32,6 +33,8 @@ Datadog でトレース・LLM Observability を見る場合は `ddtrace-run` で
 ```bash
 DD_LLMOBS_ENABLED=1 DD_API_KEY=your-datadog-api-key ddtrace-run uvicorn main:app --reload --port 8000
 ```
+
+**LLM Observability の公式手順**: [Automatic Instrumentation for LLM Observability (Python)](https://docs.datadoghq.com/ja/llm_observability/instrumentation/auto_instrumentation?tab=python)。本アプリは OpenAI Python SDK の `chat.completions.create` を使用しており、ddtrace 2.9.0+ と `DD_LLMOBS_ENABLED=1` で自動計測されます。
 
 ## API
 
