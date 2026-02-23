@@ -1,0 +1,21 @@
+# Datadog Agent (Datadog Operator でデプロイ)
+# 事前に Helm で Operator をインストールし、Secret を作成すること（infra/k8s/README.md 参照）
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+metadata:
+  name: datadog
+  namespace: mixapp
+spec:
+  global:
+    clusterName: mixapp-cluster
+    site: datadoghq.com
+    credentials:
+      apiSecret:
+        secretName: datadog-secret
+        keyName: api-key
+  features:
+    apm:
+      enabled: true
+      hostPortConfig:
+        enabled: true
+        hostPort: 8126

@@ -30,6 +30,23 @@ spec:
               value: "gpt-4o-mini"
             - name: REDIS_URL
               value: "redis://redis:6379/0"
+            # Datadog APM: 同一ノードの Agent にトレースを送る
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            # Datadog LLM Observability 有効化
+            - name: DD_LLMOBS_ENABLED
+              value: "1"
+            - name: DD_SERVICE
+              value: "investor-agent"
+            # 観測時は datadog-secret を作成すること。未作成の場合は optional のため Pod は起動するが LLM Obs は無効。
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-secret
+                  key: api-key
+                  optional: true
           livenessProbe:
             httpGet:
               path: /health
